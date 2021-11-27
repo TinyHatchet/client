@@ -208,7 +208,7 @@ func (form changeEmailForm) updateEmail() tea.Msg {
 	if err != nil {
 		return err
 	}
-	resp, err := httpClient.Post("http://localhost:8069/account/change_email", contentTypeJSON, buf)
+	resp, err := httpClient.Post(appConfig.BuildURL("/account/change_email"), contentTypeJSON, buf)
 	if err != nil {
 		return err
 	}

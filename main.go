@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/JeremyLoy/config"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/net/publicsuffix"
@@ -111,7 +113,34 @@ func (m mainMenu) View() string {
 
 	return s
 }
+
+type Config struct {
+	ServerURL string `config:"SERVER_URL"`
+	Email     string `config:"EMAIL"`
+}
+
+var appConfig Config
+
+func (a Config) BuildURL(path string) string {
+	return fmt.Sprintf("%s%s", a.ServerURL, path)
+}
+
 func main() {
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "")
+	flag.Parse()
+	config := config.FromEnv()
+	if configPath != "" {
+		log.Printf("using config from %s", configPath)
+		config.From(configPath)
+	}
+	err := config.To(&appConfig)
+	log.Println(appConfig)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+
 	cookieJar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	httpClient = &http.Client{Jar: cookieJar}
 	if err != nil {
@@ -125,6 +154,7 @@ func main() {
 			log.Println(r)
 		}
 	}()
+	tea.LogToFile("debug.log", "debug")
 	p := tea.NewProgram(initialModel(loggedIn), tea.WithAltScreen())
 	if err := p.Start(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)

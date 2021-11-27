@@ -18,7 +18,7 @@ type loginForm struct {
 
 func login() loginForm {
 	s := loginForm{
-		inputs: make([]titledInput, 2),
+		inputs: make([]titledInput, 3),
 	}
 
 	for i := range s.inputs {
@@ -29,12 +29,25 @@ func login() loginForm {
 
 		switch i {
 		case 0:
+			t.Title = "Server URL"
+			t.Placeholder = "https://mouseion.codemonkeysoftware.net"
+			if appConfig.ServerURL != "" {
+				t.SetValue(appConfig.ServerURL)
+			} else {
+				t.Focus()
+				t.PromptStyle = focusedStyle
+				t.TextStyle = focusedStyle
+			}
+		case 1:
 			t.Title = "Email"
 			t.Placeholder = "mouseion@example.com"
-			t.Focus()
-			t.PromptStyle = focusedStyle
-			t.TextStyle = focusedStyle
-		case 1:
+			if appConfig.ServerURL != "" {
+				s.focusIndex = 1
+				t.Focus()
+				t.PromptStyle = focusedStyle
+				t.TextStyle = focusedStyle
+			}
+		case 2:
 			t.Title = "Password"
 			t.Placeholder = "Password"
 			t.EchoMode = textinput.EchoPassword
@@ -56,8 +69,6 @@ func (m loginForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		case "esc":
-			return home(), nil
 		case "tab", "shift+tab", "enter", "up", "down":
 			s := msg.String()
 			if s == "enter" {
@@ -137,8 +148,14 @@ func (s loginForm) View() string {
 }
 
 func (m loginForm) login() tea.Msg {
+	appConfig.ServerURL = m.inputs[0].Value()
 	loginCmd := map[string]string{}
-	loginCmd["email"], loginCmd["password"] = m.inputs[0].Value(), m.inputs[1].Value()
+	for _, v := range m.inputs {
+		if v.Value() == "" {
+			return nil
+		}
+	}
+	loginCmd["email"], loginCmd["password"] = m.inputs[1].Value(), m.inputs[2].Value()
 	b := bytes.NewBuffer(nil)
 	encoder := json.NewEncoder(b)
 	err := encoder.Encode(loginCmd)
@@ -146,7 +163,7 @@ func (m loginForm) login() tea.Msg {
 		return err
 	}
 
-	response, err := httpClient.Post("http://localhost:8069/auth/login", contentTypeJSON, b)
+	response, err := httpClient.Post(appConfig.BuildURL("/auth/login"), contentTypeJSON, b)
 	if err != nil {
 		return err
 	}

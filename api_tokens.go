@@ -123,7 +123,7 @@ type apiToken struct {
 }
 
 func (m apiTokenMenu) createToken() tea.Msg {
-	resp, err := httpClient.Post("http://localhost:8069/auth/api_token", contentTypeJSON, nil)
+	resp, err := httpClient.Post(appConfig.BuildURL("/auth/api_token"), contentTypeJSON, nil)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ type listTokensResponse struct {
 }
 
 func (m apiTokenMenu) listTokens() tea.Msg {
-	resp, err := httpClient.Get("http://localhost:8069/auth/api_token")
+	resp, err := httpClient.Get(appConfig.BuildURL("/auth/api_token"))
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func (m apiTokenMenu) listTokens() tea.Msg {
 
 func (m apiTokenMenu) deleteToken(token apiToken) tea.Cmd {
 	return func() tea.Msg {
-		req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://localhost:8069/auth/api_token?id=%s", token.ID), nil)
+		req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf(appConfig.BuildURL("/auth/api_token?id=%s"), token.ID), nil)
 		if err != nil {
 			return err
 		}

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
+	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -125,6 +125,8 @@ func (m searchMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		top, right, bottom, left := docStyle.GetMargin()
 		m.list.SetSize(msg.Width-left-right, msg.Height-top-bottom)
+	case error:
+		log.Println(msg)
 	}
 	if m.showResult {
 		var cmd tea.Cmd
@@ -148,8 +150,7 @@ func (s *searchMenu) updateInputs(msg tea.Msg) tea.Cmd {
 
 func (s *searchMenu) getEntries() tea.Msg {
 	//TODO: add input validation
-	c := &http.Client{Timeout: 60 * time.Second}
-	u, err := url.Parse("http://localhost:8069/client/get_entries")
+	u, err := url.Parse(appConfig.BuildURL("/client/get_entries"))
 	if err != nil {
 		return err
 	}
@@ -170,7 +171,7 @@ func (s *searchMenu) getEntries() tea.Msg {
 	}
 	u.RawQuery = q.Encode()
 
-	res, err := c.Get(u.String())
+	res, err := httpClient.Get(u.String())
 	if err != nil {
 		return err
 	}
