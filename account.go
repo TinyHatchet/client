@@ -54,6 +54,9 @@ func (m accountMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return menu, menu.Init()
 			}
 		}
+
+	case tea.WindowSizeMsg:
+		width, height = msg.Width, msg.Height
 	}
 	return m, nil
 }
@@ -157,6 +160,9 @@ func (form changeEmailForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case success:
 		return account(), nil
+
+	case tea.WindowSizeMsg:
+		width, height = msg.Width, msg.Height
 	}
 	return form, form.updateInputs(msg)
 }

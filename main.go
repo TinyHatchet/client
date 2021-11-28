@@ -34,6 +34,8 @@ var (
 
 var (
 	httpClient *http.Client
+	width      int
+	height     int
 )
 
 type LogEntry struct {
@@ -50,9 +52,8 @@ func initialModel(loggedIn bool) tea.Model {
 }
 
 type mainMenu struct {
-	choices    []string
-	cursor     int
-	windowSize [2]int
+	choices []string
+	cursor  int
 }
 
 func home() mainMenu {
@@ -61,7 +62,6 @@ func home() mainMenu {
 			"Search log entries",
 			"Account Management",
 		},
-		windowSize: [2]int{0, 0},
 	}
 }
 
@@ -86,13 +86,13 @@ func (m mainMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter", " ":
 			switch m.cursor {
 			case 0:
-				return search(m.windowSize[0], m.windowSize[1]), nil
+				return search(), nil
 			case 1:
 				return account(), nil
 			}
 		}
 	case tea.WindowSizeMsg:
-		m.windowSize = [2]int{msg.Width, msg.Height}
+		width, height = msg.Width, msg.Height
 	}
 	return m, nil
 }

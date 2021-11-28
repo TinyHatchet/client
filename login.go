@@ -108,6 +108,9 @@ func (m loginForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case success:
 		return initialModel(true), nil
+
+	case tea.WindowSizeMsg:
+		width, height = msg.Width, msg.Height
 	}
 
 	return m, m.updateInputs(msg)

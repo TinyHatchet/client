@@ -83,6 +83,9 @@ func (m apiTokenMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.choices = newChoices
 		return m, nil
+
+	case tea.WindowSizeMsg:
+		width, height = msg.Width, msg.Height
 	}
 	return m, nil
 }

@@ -34,7 +34,7 @@ type searchMenu struct {
 	list       list.Model
 }
 
-func search(width, height int) searchMenu {
+func search() searchMenu {
 	s := searchMenu{
 		inputs: make([]textinput.Model, 3),
 		list:   list.NewModel(nil, list.NewDefaultDelegate(), width-(2*horizMargin), height-(2*vertMargin)),
@@ -123,6 +123,7 @@ func (m searchMenu) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.showResult = true
 		return m, cmd
 	case tea.WindowSizeMsg:
+		width, height = msg.Width, msg.Height
 		top, right, bottom, left := docStyle.GetMargin()
 		m.list.SetSize(msg.Width-left-right, msg.Height-top-bottom)
 	case error:
