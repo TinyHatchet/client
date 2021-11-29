@@ -27,6 +27,7 @@ var (
 	titleStyle   = lipgloss.NewStyle().Bold(true)
 	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	errorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF44475A"))
 	cursorStyle  = focusedStyle.Copy()
 	noStyle      = lipgloss.NewStyle()
 	docStyle     = lipgloss.NewStyle().Margin(vertMargin, horizMargin)
