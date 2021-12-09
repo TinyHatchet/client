@@ -11,6 +11,19 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type loginPage struct {
+	view        loginPageView
+	loginForm   loginForm
+	confirmForm confirmForm
+}
+
+type loginPageView int
+
+const (
+	loginPageLogin   loginPageView = iota
+	loginPageConfirm loginPageView = iota
+)
+
 type loginForm struct {
 	focusIndex     loginFormIndex
 	urlInput       textinput.Model
@@ -31,11 +44,59 @@ const (
 	loginFormIndexRegisterButton
 )
 
+type verificationRequired struct{}
+
+const (
+	MessageVerficationRequired = "verification required"
+)
+
 var (
 	errNoCredentials = errors.New("please enter credentials")
 )
 
-func login() loginForm {
+func LoginPage() tea.Model {
+	return loginPage{
+		view:        loginPageLogin,
+		loginForm:   LoginForm(),
+		confirmForm: ConfirmForm(),
+	}
+}
+func (loginPage) Init() tea.Cmd {
+	return nil
+}
+func (l loginPage) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
+	if l.view == loginPageLogin {
+		switch msg.(type) {
+		case verificationRequired:
+			l.view = loginPageConfirm
+			model, cmd = l.confirmForm.Update(msg)
+		default:
+			model, cmd = l.loginForm.Update(msg)
+		}
+	} else if l.view == loginPageConfirm {
+		model, cmd = l.confirmForm.Update(msg)
+	}
+	switch model := model.(type) {
+	case loginForm:
+		l.loginForm = model
+	case confirmForm:
+		l.confirmForm = model
+	default:
+		return model, cmd
+	}
+	return l, cmd
+}
+
+func (l loginPage) View() string {
+	if l.view == loginPageLogin {
+		return l.loginForm.View()
+	} else if l.view == loginPageConfirm {
+		return l.confirmForm.View()
+	}
+	panic("login page view out of bounds")
+}
+
+func LoginForm() loginForm {
 	s := loginForm{}
 	var t textinput.Model
 
@@ -235,11 +296,20 @@ func (m loginForm) login() tea.Msg {
 	if err != nil {
 		return err
 	}
+
+	if response.Message == MessageVerficationRequired || response.Error == MessageVerficationRequired {
+		return verificationRequired{}
+	}
 	if response.Status == StatusSuccess {
 		return success{}
-	} else {
-		return response.Error
 	}
+	if response.Errors != nil {
+		if response.Error != "" {
+			response.Errors["error"] = []string{response.Error.Error()}
+		}
+		return response.Errors
+	}
+	return response.Error
 
 }
 
@@ -268,14 +338,106 @@ func (m loginForm) register() tea.Msg {
 		return err
 	}
 
+	return m.handleResponse(response)
+}
+
+func (l loginForm) handleResponse(response *APIResponse) tea.Msg {
+	if response.Message == MessageVerficationRequired || response.Error == MessageVerficationRequired {
+		return verificationRequired{}
+	}
 	if response.Status == StatusSuccess {
 		return success{}
-	} else if response.Errors != nil {
+	}
+	if response.Errors != nil {
 		if response.Error != "" {
 			response.Errors["error"] = []string{response.Error.Error()}
 		}
 		return response.Errors
-	} else {
-		return response.Error
 	}
+	return response.Error
+}
+
+type confirmForm struct {
+	confirmInput textinput.Model
+	Error        error
+}
+
+func ConfirmForm() confirmForm {
+	form := confirmForm{}
+	t := textinput.NewModel()
+	t.CursorStyle = cursorStyle
+	t.Placeholder = "ABCD123"
+	t.Prompt = "Confirm Token > "
+	t.Focus()
+	t.PromptStyle = focusedStyle
+	t.TextStyle = noStyle
+
+	form.confirmInput = t
+	return form
+}
+
+func (c confirmForm) Init() tea.Cmd {
+	return nil
+}
+
+func (c confirmForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			return c, tea.Quit
+		case "enter":
+			return c, c.confirm
+		}
+	case success:
+		return initialModel(true), nil
+	case error:
+		c.Error = msg
+		return c, nil
+	case tea.WindowSizeMsg:
+		width, height = msg.Width, msg.Height
+	}
+	var cmd tea.Cmd
+	c.confirmInput, cmd = c.confirmInput.Update(msg)
+	return c, cmd
+}
+
+func (c confirmForm) View() string {
+	var b strings.Builder
+
+	b.WriteString("You must confirm your account before you can continue.\nCheck your email for a confirmation code and enter it below.\n\n")
+	b.WriteString(c.confirmInput.View())
+	return b.String()
+}
+func (c confirmForm) confirm() tea.Msg {
+	b := &bytes.Buffer{}
+	data := map[string]string{"cnf": c.confirmInput.Value()}
+	enc := json.NewEncoder(b)
+	err := enc.Encode(data)
+	if err != nil {
+		return fmt.Errorf("encode confirm token: %w", err)
+	}
+	httpResponse, err := httpClient.Post(appConfig.BuildURL("/auth/confirm"), contentTypeJSON, b)
+	if err != nil {
+		return err
+	}
+	response, err := ParseAPIResponse(httpResponse)
+	if err != nil {
+		return err
+	}
+
+	return c.handleResponse(response)
+}
+
+func (confirmForm) handleResponse(response *APIResponse) tea.Msg {
+	if response.Status == StatusSuccess {
+		return success{}
+	}
+	if response.Errors != nil {
+		if response.Error != "" {
+			response.Errors["error"] = []string{response.Error.Error()}
+		}
+		return response.Errors
+	}
+	return response.Error
 }

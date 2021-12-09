@@ -47,7 +47,7 @@ type LogEntry struct {
 
 func initialModel(loggedIn bool) tea.Model {
 	if !loggedIn {
-		return login()
+		return LoginPage()
 	}
 	return home()
 }

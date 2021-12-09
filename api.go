@@ -7,9 +7,10 @@ import (
 )
 
 type APIResponse struct {
-	Status string      `json:"status"`
-	Errors Errors      `json:"errors"`
-	Error  StringError `json:"error"`
+	Status  string      `json:"status"`
+	Errors  Errors      `json:"errors"`
+	Error   StringError `json:"error"`
+	Message string
 }
 type StringError string
 
