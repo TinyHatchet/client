@@ -68,6 +68,8 @@ func (l loginPage) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
 	if l.view == loginPageLogin {
 		switch msg.(type) {
 		case verificationRequired:
+			appConfig.ServerURL = l.loginForm.urlInput.Value()
+			appConfig.EmailAddress = l.loginForm.emailInput.Value()
 			l.view = loginPageConfirm
 			model, cmd = l.confirmForm.Update(msg)
 		default:
@@ -118,10 +120,14 @@ func LoginForm() loginForm {
 	t.Placeholder = "mouseion@example.com"
 	t.Prompt = "Email    > "
 	if appConfig.ServerURL != "" {
-		s.focusIndex = loginFormIndexEmailInput
-		t.Focus()
-		t.PromptStyle = focusedStyle
-		t.TextStyle = focusedStyle
+		if appConfig.EmailAddress == "" {
+			s.focusIndex = loginFormIndexEmailInput
+			t.Focus()
+			t.PromptStyle = focusedStyle
+			t.TextStyle = focusedStyle
+		} else {
+			t.SetValue(appConfig.EmailAddress)
+		}
 	}
 	s.emailInput = t
 
@@ -131,6 +137,12 @@ func LoginForm() loginForm {
 	t.Prompt = "Password > "
 	t.EchoMode = textinput.EchoPassword
 	t.EchoCharacter = '*'
+	if appConfig.ServerURL != "" && appConfig.EmailAddress != "" {
+		s.focusIndex = loginFormIndexPasswordInput
+		t.Focus()
+		t.PromptStyle = focusedStyle
+		t.TextStyle = focusedStyle
+	}
 	s.passwordInput = t
 
 	return s

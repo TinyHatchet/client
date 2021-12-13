@@ -3,16 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
 	"time"
 
-	"github.com/JeremyLoy/config"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"golang.org/x/net/publicsuffix"
+
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -115,38 +117,60 @@ func (m mainMenu) View() string {
 	return s
 }
 
+var appConfig Config
+
 type Config struct {
-	ServerURL string `config:"SERVER_URL"`
-	Email     string `config:"EMAIL"`
+	ServerURL    string
+	EmailAddress string
+	DebugPath    string
 }
 
-var appConfig Config
+func (c *Config) LoadFromFile(path string) error {
+	body, err := ioutil.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read config file: %w", err)
+	}
+	err = yaml.Unmarshal(body, c)
+	if err != nil {
+		return fmt.Errorf("unmarshal config: %w", err)
+	}
+	return nil
+}
+
+func (c Config) WriteOut(path string) error {
+	body, err := yaml.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("marshal config: %w", err)
+	}
+	err = ioutil.WriteFile(path, body, 0600)
+	if err != nil {
+		return fmt.Errorf("write config file %w", err)
+	}
+	return nil
+}
 
 func (a Config) BuildURL(path string) string {
 	return fmt.Sprintf("%s%s", a.ServerURL, path)
 }
 
 func main() {
+	homedir, _ := os.UserHomeDir()
+	defaultConfig := homedir + string(os.PathSeparator) + ".mouseion.config"
 	var configPath string
-	flag.StringVar(&configPath, "config", "", "")
+	flag.StringVar(&configPath, "config", defaultConfig, "")
 	flag.Parse()
-	config := config.FromEnv()
-	if configPath != "" {
-		log.Printf("using config from %s", configPath)
-		config.From(configPath)
-	}
-	err := config.To(&appConfig)
-	log.Println(appConfig)
+
+	err := appConfig.LoadFromFile(configPath)
 	if err != nil {
-		log.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
+
+	defer appConfig.WriteOut(configPath)
 
 	cookieJar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	httpClient = &http.Client{Jar: cookieJar}
 	if err != nil {
-		log.Println(err)
-		return
+		log.Fatal(err)
 	}
 	var loggedIn bool
 	defer func() {
@@ -155,10 +179,13 @@ func main() {
 			log.Println(r)
 		}
 	}()
-	tea.LogToFile("debug.log", "debug")
+
+	if appConfig.DebugPath != "" {
+		_, _ = tea.LogToFile("debug.log", "")
+	}
+
 	p := tea.NewProgram(initialModel(loggedIn), tea.WithAltScreen())
 	if err := p.Start(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
+		log.Fatalf("Alas, there's been an error: %v", err)
 	}
 }
