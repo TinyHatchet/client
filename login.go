@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -422,14 +423,13 @@ func (c confirmForm) View() string {
 	return b.String()
 }
 func (c confirmForm) confirm() tea.Msg {
-	b := &bytes.Buffer{}
-	data := map[string]string{"cnf": c.confirmInput.Value()}
-	enc := json.NewEncoder(b)
-	err := enc.Encode(data)
+	req, err := http.NewRequest(http.MethodGet, appConfig.BuildURL("/auth/confirm?cnf="+c.confirmInput.Value()), nil)
 	if err != nil {
-		return fmt.Errorf("encode confirm token: %w", err)
+		return err
 	}
-	httpResponse, err := httpClient.Post(appConfig.BuildURL("/auth/confirm"), contentTypeJSON, b)
+	req.Header.Set("Content-Type", contentTypeJSON)
+
+	httpResponse, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
