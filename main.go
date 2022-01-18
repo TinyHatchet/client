@@ -128,12 +128,16 @@ type Config struct {
 func (c *Config) LoadFromFile(path string) error {
 	body, err := ioutil.ReadFile(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return fmt.Errorf("read config file: %w", err)
 	}
 	err = yaml.Unmarshal(body, c)
 	if err != nil {
 		return fmt.Errorf("unmarshal config: %w", err)
 	}
+	c.ServerURL = "https://tinyhatchet.com"
 	return nil
 }
 
@@ -149,13 +153,13 @@ func (c Config) WriteOut(path string) error {
 	return nil
 }
 
-func (a Config) BuildURL(path string) string {
-	return fmt.Sprintf("%s%s", a.ServerURL, path)
+func (c Config) BuildURL(path string) string {
+	return fmt.Sprintf("%s%s", c.ServerURL, path)
 }
 
 func main() {
 	homedir, _ := os.UserHomeDir()
-	defaultConfig := homedir + string(os.PathSeparator) + ".mouseion.config"
+	defaultConfig := homedir + string(os.PathSeparator) + ".tinyhatchet.config"
 	var configPath string
 	flag.StringVar(&configPath, "config", defaultConfig, "")
 	flag.Parse()

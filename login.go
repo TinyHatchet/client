@@ -27,7 +27,6 @@ const (
 
 type loginForm struct {
 	focusIndex     loginFormIndex
-	urlInput       textinput.Model
 	emailInput     textinput.Model
 	passwordInput  textinput.Model
 	emailErrors    []string
@@ -38,8 +37,7 @@ type loginForm struct {
 type loginFormIndex int
 
 const (
-	loginFormIndexURLInput loginFormIndex = iota
-	loginFormIndexEmailInput
+	loginFormIndexEmailInput loginFormIndex = iota
 	loginFormIndexPasswordInput
 	loginFormIndexLoginButton
 	loginFormIndexRegisterButton
@@ -69,7 +67,6 @@ func (l loginPage) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
 	if l.view == loginPageLogin {
 		switch msg.(type) {
 		case verificationRequired:
-			appConfig.ServerURL = l.loginForm.urlInput.Value()
 			appConfig.EmailAddress = l.loginForm.emailInput.Value()
 			l.view = loginPageConfirm
 			model, cmd = l.confirmForm.Update(msg)
@@ -105,31 +102,17 @@ func LoginForm() loginForm {
 
 	t = textinput.NewModel()
 	t.CursorStyle = cursorStyle
-	t.Placeholder = "https://mouseion.codemonkeysoftware.net"
-	t.Prompt = "URL      > "
-	if appConfig.ServerURL != "" {
-		t.SetValue(appConfig.ServerURL)
-	} else {
+	t.Placeholder = "tinyhatchet@example.com"
+	t.Prompt = "Email    > "
+	if appConfig.EmailAddress == "" {
+		s.focusIndex = loginFormIndexEmailInput
 		t.Focus()
 		t.PromptStyle = focusedStyle
 		t.TextStyle = focusedStyle
+	} else {
+		t.SetValue(appConfig.EmailAddress)
 	}
-	s.urlInput = t
 
-	t = textinput.NewModel()
-	t.CursorStyle = cursorStyle
-	t.Placeholder = "mouseion@example.com"
-	t.Prompt = "Email    > "
-	if appConfig.ServerURL != "" {
-		if appConfig.EmailAddress == "" {
-			s.focusIndex = loginFormIndexEmailInput
-			t.Focus()
-			t.PromptStyle = focusedStyle
-			t.TextStyle = focusedStyle
-		} else {
-			t.SetValue(appConfig.EmailAddress)
-		}
-	}
 	s.emailInput = t
 
 	t = textinput.NewModel()
@@ -180,20 +163,11 @@ func (m loginForm) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if m.focusIndex > loginFormIndexRegisterButton {
 				m.focusIndex = loginFormIndexRegisterButton
-			} else if m.focusIndex < loginFormIndexURLInput {
-				m.focusIndex = loginFormIndexURLInput
+			} else if m.focusIndex < 0 {
+				m.focusIndex = 0
 			}
 
 			var cmd tea.Cmd
-			if m.focusIndex == loginFormIndexURLInput {
-				cmd = m.urlInput.Focus()
-				m.urlInput.PromptStyle = focusedStyle
-				m.urlInput.TextStyle = focusedStyle
-			} else {
-				m.urlInput.Blur()
-				m.urlInput.PromptStyle = noStyle
-				m.urlInput.TextStyle = noStyle
-			}
 			if m.focusIndex == loginFormIndexEmailInput {
 				cmd = m.emailInput.Focus()
 				m.emailInput.PromptStyle = focusedStyle
@@ -235,8 +209,6 @@ func (s *loginForm) updateInputs(msg tea.Msg) tea.Cmd {
 
 	s.emailInput, cmd = s.emailInput.Update(msg)
 	cmds = append(cmds, cmd)
-	s.urlInput, cmd = s.urlInput.Update(msg)
-	cmds = append(cmds, cmd)
 	s.passwordInput, cmd = s.passwordInput.Update(msg)
 	cmds = append(cmds, cmd)
 
@@ -245,9 +217,6 @@ func (s *loginForm) updateInputs(msg tea.Msg) tea.Cmd {
 
 func (s loginForm) View() string {
 	var b strings.Builder
-
-	b.WriteString(s.urlInput.View())
-	b.WriteRune('\n')
 
 	b.WriteString(s.emailInput.View())
 	b.WriteRune('\n')
@@ -286,7 +255,6 @@ func (s loginForm) View() string {
 }
 
 func (m loginForm) login() tea.Msg {
-	appConfig.ServerURL = m.urlInput.Value()
 	loginCmd := map[string]string{}
 
 	if m.emailInput.Value() == "" || m.passwordInput.Value() == "" {
@@ -327,7 +295,6 @@ func (m loginForm) login() tea.Msg {
 }
 
 func (m loginForm) register() tea.Msg {
-	appConfig.ServerURL = m.urlInput.Value()
 	cmd := map[string]string{}
 
 	if m.emailInput.Value() == "" || m.passwordInput.Value() == "" {

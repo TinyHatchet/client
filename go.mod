@@ -1,4 +1,6 @@
-module git.codemonkeysoftware.net/mouseion/client
+module github.com/TinyHatchet/client
+
+go 1.17
 
 require (
 	github.com/JeremyLoy/config v1.5.0
@@ -24,5 +26,3 @@ require (
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
-
-go 1.17

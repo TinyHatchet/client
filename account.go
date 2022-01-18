@@ -104,7 +104,7 @@ func changeEmail() changeEmailForm {
 		switch i {
 		case 0:
 			t.Title = "New Email"
-			t.Placeholder = "mouseion@example.com"
+			t.Placeholder = "tinyhatchet@example.com"
 			t.Focus()
 			t.PromptStyle = focusedStyle
 			t.TextStyle = focusedStyle
